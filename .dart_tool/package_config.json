@@ -50,22 +50,10 @@
       "languageVersion": "3.2"
     },
     {
-      "name": "flutter_lints",
-      "rootUri": "file:///C:/Users/yilme/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_lints-2.0.3",
-      "packageUri": "lib/",
-      "languageVersion": "2.19"
-    },
-    {
       "name": "flutter_test",
       "rootUri": "file:///D:/Src/flutter/packages/flutter_test",
       "packageUri": "lib/",
       "languageVersion": "3.2"
-    },
-    {
-      "name": "lints",
-      "rootUri": "file:///C:/Users/yilme/AppData/Local/Pub/Cache/hosted/pub.dev/lints-2.1.1",
-      "packageUri": "lib/",
-      "languageVersion": "3.0"
     },
     {
       "name": "matcher",
@@ -149,10 +137,10 @@
       "name": "menumate",
       "rootUri": "../",
       "packageUri": "lib/",
-      "languageVersion": "3.2"
+      "languageVersion": "2.17"
     }
   ],
-  "generated": "2026-02-24T18:47:36.898469Z",
+  "generated": "2026-02-24T19:06:38.078006Z",
   "generator": "pub",
   "generatorVersion": "3.2.1"
 }

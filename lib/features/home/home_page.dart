@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../cart/cart_page.dart';
 import '../support/support_page.dart';
+import '../menu/category_menu_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -68,8 +69,12 @@ class _HomePageState extends State<HomePage> {
         onClose: () => Navigator.of(context).pop(),
         onSelect: (cat) {
           Navigator.of(context).pop();
-          _toast("Kategori seçildi: $cat (demo)");
-          // Sonra buradan kategori sayfasına gidersin
+
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => CategoryMenuPage(categoryName: cat),
+            ),
+          );
         },
       ),
 
@@ -100,7 +105,6 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
         onTap: (index) {
-          // ✅ Menü sekmesi: sayfa değiştirme, sağ drawer aç
           if (index == 3) {
             _openRightDrawer();
             return;
@@ -134,7 +138,6 @@ class _HomeContent extends StatelessWidget {
           "MenuMate",
           style: TextStyle(fontWeight: FontWeight.w900, fontSize: 24),
         ),
-        // ✅ Sağ üstte kategori butonu istemiyorsun: kaldırdım.
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),

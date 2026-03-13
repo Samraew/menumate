@@ -15,14 +15,22 @@ class CategoryMenuPage extends StatefulWidget {
 
 class _CategoryMenuPageState extends State<CategoryMenuPage> {
   final DatabaseReference _dbRef = FirebaseDatabase.instance.ref("menu");
+  final TextEditingController _searchController = TextEditingController();
 
   List<Map<String, dynamic>> _allItems = [];
   bool _loading = true;
+  String _searchText = "";
 
   @override
   void initState() {
     super.initState();
     loadMenu();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> loadMenu() async {
@@ -68,7 +76,11 @@ class _CategoryMenuPageState extends State<CategoryMenuPage> {
   @override
   Widget build(BuildContext context) {
     final filteredItems = _allItems.where((item) {
-      return item["category"] == widget.categoryName;
+      final categoryMatch = item["category"] == widget.categoryName;
+      final name = item["name"]?.toString().toLowerCase() ?? "";
+      final searchMatch = name.contains(_searchText.toLowerCase());
+
+      return categoryMatch && searchMatch;
     }).toList();
 
     return Scaffold(
@@ -77,56 +89,91 @@ class _CategoryMenuPageState extends State<CategoryMenuPage> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : filteredItems.isEmpty
-              ? Center(
-                  child: Text(
-                    "${widget.categoryName} kategorisinde ürün bulunamadı.",
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: filteredItems.length,
-                  itemBuilder: (context, index) {
-                    final item = filteredItems[index];
-
-                    return Card(
-                      child: ListTile(
-                        title: Text(
-                          item["name"].toString(),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        subtitle: Text(item["category"].toString()),
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "₺${item["price"]}",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            FilledButton.tonal(
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (value) {
+                      setState(() {
+                        _searchText = value;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: "${widget.categoryName} içinde ara...",
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _searchText.isNotEmpty
+                          ? IconButton(
                               onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      "${item["name"]} sepete eklendi",
-                                    ),
-                                  ),
-                                );
+                                _searchController.clear();
+                                setState(() {
+                                  _searchText = "";
+                                });
                               },
-                              child: const Text("Ekle"),
+                              icon: const Icon(Icons.close),
                             )
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+                          : null,
+                    ),
+                  ),
                 ),
+                Expanded(
+                  child: filteredItems.isEmpty
+                      ? Center(
+                          child: Text(
+                            _searchText.isEmpty
+                                ? "${widget.categoryName} kategorisinde ürün bulunamadı."
+                                : "Aramaya uygun ürün bulunamadı.",
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: filteredItems.length,
+                          itemBuilder: (context, index) {
+                            final item = filteredItems[index];
+
+                            return Card(
+                              child: ListTile(
+                                title: Text(
+                                  item["name"].toString(),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                subtitle: Text(item["category"].toString()),
+                                trailing: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      "₺${item["price"]}",
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    FilledButton.tonal(
+                                      onPressed: () {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              "${item["name"]} sepete eklendi",
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                      child: const Text("Ekle"),
+                                    )
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
     );
   }
 }

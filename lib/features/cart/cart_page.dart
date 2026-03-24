@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import 'cart_service.dart';
+import '../payment/payment_page.dart';
 
 class CartPage extends StatelessWidget {
   const CartPage({super.key});
@@ -331,17 +333,14 @@ class _CartSummaryCard extends StatelessWidget {
                   ),
                 ),
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        "Sipariş alındı. Sonraki adımda bunu Firebase'e bağlayacağız.",
-                      ),
-                      behavior: SnackBarBehavior.floating,
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const PaymentPage(),
                     ),
                   );
                 },
                 child: Text(
-                  "Sipariş Ver (${items.length} ürün)",
+                  "Ödemeye Geç (${items.length} ürün)",
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,

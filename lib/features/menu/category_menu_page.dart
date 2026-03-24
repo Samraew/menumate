@@ -1,5 +1,6 @@
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+
 import '../cart/cart_service.dart';
 
 class CategoryMenuPage extends StatefulWidget {
@@ -49,15 +50,20 @@ class _CategoryMenuPageState extends State<CategoryMenuPage> {
       List<Map<String, dynamic>> loadedItems = [];
 
       if (data is List) {
-        for (final item in data) {
+        for (int i = 0; i < data.length; i++) {
+          final item = data[i];
           if (item != null) {
-            loadedItems.add(Map<String, dynamic>.from(item));
+            final mapped = Map<String, dynamic>.from(item);
+            mapped["_key"] = i.toString();
+            loadedItems.add(mapped);
           }
         }
       } else if (data is Map) {
         data.forEach((key, value) {
           if (value != null) {
-            loadedItems.add(Map<String, dynamic>.from(value));
+            final mapped = Map<String, dynamic>.from(value);
+            mapped["_key"] = key.toString();
+            loadedItems.add(mapped);
           }
         });
       }
@@ -71,6 +77,24 @@ class _CategoryMenuPageState extends State<CategoryMenuPage> {
       setState(() {
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _increaseViewCount(Map<String, dynamic> item) async {
+    try {
+      final itemKey = item["_key"]?.toString();
+      if (itemKey == null || itemKey.isEmpty) return;
+
+      final currentCount = (item["viewCount"] as num?)?.toInt() ?? 0;
+      final newCount = currentCount + 1;
+
+      await _dbRef.child(itemKey).update({
+        "viewCount": newCount,
+      });
+
+      item["viewCount"] = newCount;
+    } catch (e) {
+      debugPrint("viewCount güncellenemedi: $e");
     }
   }
 
@@ -109,19 +133,18 @@ class _CategoryMenuPageState extends State<CategoryMenuPage> {
     }
   }
 
-  String _getDescription(Map<String, dynamic> item) {
-    final name = item["name"]?.toString() ?? "";
-    final category = item["category"]?.toString() ?? "";
+  void _showProductSheet(
+      BuildContext context, Map<String, dynamic> item) async {
+    await _increaseViewCount(item);
 
-    return "$name, $category kategorisinde yer alan lezzetli seçeneklerimizden biridir. Ürün detay açıklaması ve görsel alanı daha sonra buraya eklenebilir.";
-  }
-
-  void _showProductSheet(BuildContext context, Map<String, dynamic> item) {
     final String name = item["name"]?.toString() ?? "Ürün";
     final String category = item["category"]?.toString() ?? "";
-    final String price = item["price"]?.toString() ?? "0";
+    final int price = (item["price"] as num?)?.toInt() ?? 0;
+    final String description =
+        item["description"]?.toString() ?? "Bu ürün için açıklama eklenmemiş.";
     final IconData icon = _getCategoryIcon(category);
-    final String description = _getDescription(item);
+
+    if (!mounted) return;
 
     showModalBottomSheet(
       context: context,
@@ -244,12 +267,10 @@ class _CategoryMenuPageState extends State<CategoryMenuPage> {
                       ),
                     ),
                     onPressed: () {
-                      final int parsedPrice = int.tryParse(price) ?? 0;
-
                       CartService.instance.addItem(
                         name: name,
                         category: category,
-                        price: parsedPrice,
+                        price: price,
                       );
 
                       Navigator.pop(context);
@@ -292,7 +313,6 @@ class _CategoryMenuPageState extends State<CategoryMenuPage> {
       backgroundColor: const Color(0xFFF8F4FA),
       appBar: AppBar(
         elevation: 0,
-        centerTitle: false,
         backgroundColor: const Color(0xFFF8F4FA),
         surfaceTintColor: Colors.transparent,
         title: Text(
@@ -367,8 +387,8 @@ class _CategoryMenuPageState extends State<CategoryMenuPage> {
                                 item["name"]?.toString() ?? "Ürün";
                             final String category =
                                 item["category"]?.toString() ?? "";
-                            final String price =
-                                item["price"]?.toString() ?? "0";
+                            final int price =
+                                (item["price"] as num?)?.toInt() ?? 0;
 
                             return Container(
                               margin: const EdgeInsets.only(bottom: 14),

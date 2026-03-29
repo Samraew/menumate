@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../cart/cart_page.dart';
 import '../support/support_page.dart';
 import '../menu/category_menu_page.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -450,6 +451,7 @@ class _HomeContentState extends State<_HomeContent> {
                             itemBuilder: (context, index) {
                               final item = mostViewedItems[index];
                               return _FoodCard(
+                                item: item,
                                 name: item["name"]?.toString() ?? "",
                                 price: (item["price"] as num?)?.toInt() ?? 0,
                                 subInfo:
@@ -486,6 +488,7 @@ class _HomeContentState extends State<_HomeContent> {
                             itemBuilder: (context, index) {
                               final item = chefItems[index];
                               return _FoodCard(
+                                item: item,
                                 name: item["name"]?.toString() ?? "",
                                 price: (item["price"] as num?)?.toInt() ?? 0,
                                 subInfo:
@@ -512,6 +515,7 @@ class _FoodCard extends StatelessWidget {
   final String subInfo;
   final String category;
   final IconData icon;
+  final Map<String, dynamic> item;
 
   const _FoodCard({
     required this.name,
@@ -519,7 +523,43 @@ class _FoodCard extends StatelessWidget {
     required this.subInfo,
     required this.category,
     required this.icon,
+    required this.item,
   });
+
+  Widget buildProductImage(Map item) {
+    final imageUrl = item['imageUrl']?.toString() ?? '';
+
+    if (imageUrl.isEmpty) {
+      return Image.asset(
+        'assets/images/gozleme.jpg',
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+      );
+    }
+
+    return CachedNetworkImage(
+      imageUrl: imageUrl,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
+      placeholder: (context, url) => Container(
+        color: Colors.grey.shade200,
+        alignment: Alignment.center,
+        child: const SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+      errorWidget: (context, url, error) => Image.asset(
+        'assets/images/gozleme.jpg',
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -539,20 +579,12 @@ class _FoodCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            height: 125,
-            decoration: const BoxDecoration(
-              color: Color(0xFFF6E8D7),
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(22),
-              ),
-            ),
-            child: Center(
-              child: Icon(
-                icon,
-                size: 58,
-                color: const Color(0xFFF97316),
-              ),
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            child: SizedBox(
+              height: 150,
+              width: double.infinity,
+              child: buildProductImage(item),
             ),
           ),
           Expanded(

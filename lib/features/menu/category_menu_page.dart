@@ -1,5 +1,6 @@
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../cart/cart_service.dart';
 
@@ -98,43 +99,57 @@ class _CategoryMenuPageState extends State<CategoryMenuPage> {
     }
   }
 
-  IconData _getCategoryIcon(String category) {
-    switch (category) {
-      case "Fix Menü":
-        return Icons.restaurant_menu;
-      case "Kahvaltılar":
-        return Icons.free_breakfast;
-      case "Specialler":
-        return Icons.star_outline;
-      case "Salatalar":
-        return Icons.eco_outlined;
-      case "Soğuk Mezeler":
-        return Icons.tapas_outlined;
-      case "Ara Sıcaklar":
-        return Icons.local_fire_department_outlined;
-      case "Balıklar":
-        return Icons.set_meal_outlined;
-      case "Et Izgaralar":
-        return Icons.outdoor_grill;
-      case "Tavuk Izgaralar":
-        return Icons.lunch_dining_outlined;
-      case "Kavurma ve Güveçler":
-        return Icons.soup_kitchen_outlined;
-      case "Soğuk İçecekler":
-        return Icons.local_drink_outlined;
-      case "Çaylar ve Kahveler":
-        return Icons.coffee_outlined;
-      case "Soğuk Kahveler":
-        return Icons.icecream_outlined;
-      case "Kokteyller":
-        return Icons.wine_bar_outlined;
-      default:
-        return Icons.fastfood_outlined;
+  Widget _buildProductImage(
+    Map<String, dynamic> item, {
+    double? width,
+    double? height,
+    BorderRadius? borderRadius,
+  }) {
+    final imageUrl = item["imageUrl"]?.toString() ?? '';
+
+    final imageWidget = imageUrl.isEmpty
+        ? Image.asset(
+            'assets/images/gozleme.jpg',
+            fit: BoxFit.cover,
+            width: width,
+            height: height,
+          )
+        : CachedNetworkImage(
+            imageUrl: imageUrl,
+            fit: BoxFit.cover,
+            width: width,
+            height: height,
+            placeholder: (context, url) => Container(
+              color: Colors.grey.shade200,
+              alignment: Alignment.center,
+              child: const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+            errorWidget: (context, url, error) => Image.asset(
+              'assets/images/gozleme.jpg',
+              fit: BoxFit.cover,
+              width: width,
+              height: height,
+            ),
+          );
+
+    if (borderRadius != null) {
+      return ClipRRect(
+        borderRadius: borderRadius,
+        child: imageWidget,
+      );
     }
+
+    return imageWidget;
   }
 
   void _showProductSheet(
-      BuildContext context, Map<String, dynamic> item) async {
+    BuildContext context,
+    Map<String, dynamic> item,
+  ) async {
     await _increaseViewCount(item);
 
     final String name = item["name"]?.toString() ?? "Ürün";
@@ -142,7 +157,6 @@ class _CategoryMenuPageState extends State<CategoryMenuPage> {
     final int price = (item["price"] as num?)?.toInt() ?? 0;
     final String description =
         item["description"]?.toString() ?? "Bu ürün için açıklama eklenmemiş.";
-    final IconData icon = _getCategoryIcon(category);
 
     if (!mounted) return;
 
@@ -177,18 +191,11 @@ class _CategoryMenuPageState extends State<CategoryMenuPage> {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 74,
-                      height: 74,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFEDD5),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Icon(
-                        icon,
-                        color: const Color(0xFFF97316),
-                        size: 36,
-                      ),
+                    _buildProductImage(
+                      item,
+                      width: 88,
+                      height: 88,
+                      borderRadius: BorderRadius.circular(20),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -407,18 +414,11 @@ class _CategoryMenuPageState extends State<CategoryMenuPage> {
                                 padding: const EdgeInsets.all(16),
                                 child: Row(
                                   children: [
-                                    Container(
-                                      width: 54,
-                                      height: 54,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFFFEDD5),
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      child: Icon(
-                                        _getCategoryIcon(category),
-                                        color: const Color(0xFFF97316),
-                                        size: 28,
-                                      ),
+                                    _buildProductImage(
+                                      item,
+                                      width: 72,
+                                      height: 72,
+                                      borderRadius: BorderRadius.circular(16),
                                     ),
                                     const SizedBox(width: 14),
                                     Expanded(

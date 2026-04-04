@@ -1,6 +1,7 @@
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 
+import '../cart/cart_service.dart';
 import '../cart/cart_page.dart';
 import '../support/support_page.dart';
 import '../menu/category_menu_page.dart';
@@ -438,7 +439,7 @@ class _HomeContentState extends State<_HomeContent> {
                   ),
                   const SizedBox(height: 14),
                   SizedBox(
-                    height: 285,
+                    height: 305,
                     child: mostViewedItems.isEmpty
                         ? const Center(
                             child: Text("Henüz görüntülenme verisi yok."),
@@ -475,7 +476,7 @@ class _HomeContentState extends State<_HomeContent> {
                   ),
                   const SizedBox(height: 14),
                   SizedBox(
-                    height: 285,
+                    height: 305,
                     child: chefItems.isEmpty
                         ? const Center(
                             child: Text("Şef önerisi verisi bulunamadı."),
@@ -526,7 +527,7 @@ class _FoodCard extends StatelessWidget {
     required this.item,
   });
 
-  Widget buildProductImage(Map item) {
+  Widget buildProductImage(Map<String, dynamic> item) {
     final imageUrl = item['imageUrl']?.toString() ?? '';
 
     if (imageUrl.isEmpty) {
@@ -580,16 +581,16 @@ class _FoodCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
             child: SizedBox(
-              height: 150,
+              height: 130,
               width: double.infinity,
               child: buildProductImage(item),
             ),
           ),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -603,7 +604,7 @@ class _FoodCard extends StatelessWidget {
                       color: Color(0xFF7C2D12),
                     ),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
                     category,
                     maxLines: 1,
@@ -613,7 +614,7 @@ class _FoodCard extends StatelessWidget {
                       fontSize: 13,
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       const Icon(
@@ -635,13 +636,52 @@ class _FoodCard extends StatelessWidget {
                     ],
                   ),
                   const Spacer(),
-                  Text(
-                    "₺$price",
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      color: Color(0xFFF97316),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          "₺$price",
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFFF97316),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () {
+                          CartService.instance.addItem(
+                            name: name,
+                            category: category,
+                            price: price,
+                          );
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text("$name sepete eklendi"),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF97316),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.add_shopping_cart_outlined,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

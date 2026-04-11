@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../cart/cart_service.dart';
+import '../../services/order_service.dart';
 
 enum PaymentMethodType {
   card,
@@ -43,51 +44,84 @@ class _PaymentPageState extends State<PaymentPage> {
       if (!_formKey.currentState!.validate()) return;
     }
 
+    final cartItems = List<CartItem>.from(CartService.instance.cartItems.value);
+
+    if (cartItems.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Sepet boş, sipariş oluşturulamadı."),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isPaying = true;
     });
 
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      await Future.delayed(const Duration(seconds: 1));
 
-    if (!mounted) return;
+      await OrderService.createOrder(
+        items: cartItems,
+        totalPrice: CartService.instance.totalPrice,
+        paymentMethod: _selectedMethod,
+      );
 
-    CartService.instance.clearCart();
+      if (!mounted) return;
 
-    setState(() {
-      _isPaying = false;
-    });
+      CartService.instance.clearCart();
 
-    String successText;
-    switch (_selectedMethod) {
-      case PaymentMethodType.card:
-        successText = "Kart ile ödeme başarıyla tamamlandı.";
-        break;
-      case PaymentMethodType.cash:
-        successText = "Sipariş oluşturuldu. Ödeme yöntemi: Nakit.";
-        break;
-      case PaymentMethodType.payAtTable:
-        successText = "Sipariş oluşturuldu. Ödeme masada alınacak.";
-        break;
+      setState(() {
+        _isPaying = false;
+      });
+
+      String successText;
+      switch (_selectedMethod) {
+        case PaymentMethodType.card:
+          successText = "Ödeme tamamlandı ve sipariş mutfağa iletildi.";
+          break;
+        case PaymentMethodType.cash:
+          successText = "Sipariş oluşturuldu. Ödeme yöntemi: Nakit.";
+          break;
+        case PaymentMethodType.payAtTable:
+          successText = "Sipariş oluşturuldu. Ödeme masada alınacak.";
+          break;
+      }
+
+      showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text("İşlem Başarılı"),
+            content: Text(successText),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(this.context).pop();
+                },
+                child: const Text("Tamam"),
+              ),
+            ],
+          );
+        },
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isPaying = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Sipariş kaydedilemedi: $e"),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("İşlem Başarılı"),
-          content: Text(successText),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.of(this.context).pop();
-              },
-              child: const Text("Tamam"),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   String? _validateRequired(String? value, String label) {

@@ -1,14 +1,19 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 
-import '../cart/cart_service.dart';
 import '../cart/cart_page.dart';
-import '../support/support_page.dart';
+import '../cart/cart_service.dart';
 import '../menu/category_menu_page.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import '../support/support_page.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final String tableNumber;
+
+  const HomePage({
+    super.key,
+    required this.tableNumber,
+  });
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -18,23 +23,49 @@ class _HomePageState extends State<HomePage> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   int _selectedIndex = 1;
+  List<String> _categories = [];
+  bool _categoriesLoading = true;
 
-  final List<String> _categories = const [
-    "Fix Menü",
-    "Kahvaltılar",
-    "Specialler",
-    "Salatalar",
-    "Soğuk Mezeler",
-    "Ara Sıcaklar",
-    "Balıklar",
-    "Et Izgaralar",
-    "Tavuk Izgaralar",
-    "Kavurma ve Güveçler",
-    "Soğuk İçecekler",
-    "Çaylar ve Kahveler",
-    "Soğuk Kahveler",
-    "Kokteyller",
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final snapshot = await FirebaseDatabase.instance.ref("categories").get();
+
+      final List<String> loadedCategories = [];
+
+      if (snapshot.exists) {
+        final data = snapshot.value;
+
+        if (data is Map) {
+          data.forEach((key, value) {
+            if (value is Map && value["name"] != null) {
+              loadedCategories.add(value["name"].toString());
+            }
+          });
+        }
+      }
+
+      loadedCategories.sort();
+
+      if (!mounted) return;
+      setState(() {
+        _categories = loadedCategories;
+        _categoriesLoading = false;
+      });
+    } catch (e) {
+      debugPrint("Kategori verisi alınamadı: $e");
+
+      if (!mounted) return;
+      setState(() {
+        _categoriesLoading = false;
+      });
+    }
+  }
 
   void _openLeftDrawer() => _scaffoldKey.currentState?.openDrawer();
   void _openRightDrawer() => _scaffoldKey.currentState?.openEndDrawer();
@@ -44,8 +75,10 @@ class _HomePageState extends State<HomePage> {
     final pages = <Widget>[
       const CartPage(),
       _HomeContent(
+        tableNumber: widget.tableNumber,
         onOpenContact: _openLeftDrawer,
         onOpenCategoryMenu: _openRightDrawer,
+        onRefreshCategories: _loadCategories,
       ),
       const SupportPage(),
       const _MenuPlaceholder(),
@@ -61,6 +94,7 @@ class _HomePageState extends State<HomePage> {
       endDrawer: _CategoryDrawer(
         title: "Kategori Listesi",
         categories: _categories,
+        isLoading: _categoriesLoading,
         onClose: () => Navigator.of(context).pop(),
         onSelect: (cat) {
           Navigator.of(context).pop();
@@ -109,12 +143,16 @@ class _HomePageState extends State<HomePage> {
 }
 
 class _HomeContent extends StatefulWidget {
+  final String tableNumber;
   final VoidCallback onOpenContact;
   final VoidCallback onOpenCategoryMenu;
+  final Future<void> Function() onRefreshCategories;
 
   const _HomeContent({
+    required this.tableNumber,
     required this.onOpenContact,
     required this.onOpenCategoryMenu,
+    required this.onRefreshCategories,
   });
 
   @override
@@ -138,6 +176,7 @@ class _HomeContentState extends State<_HomeContent> {
       final snapshot = await _dbRef.get();
 
       if (!snapshot.exists) {
+        if (!mounted) return;
         setState(() {
           _allItems = [];
           _loading = false;
@@ -167,16 +206,26 @@ class _HomeContentState extends State<_HomeContent> {
         });
       }
 
+      if (!mounted) return;
       setState(() {
         _allItems = loadedItems;
         _loading = false;
       });
     } catch (e) {
       debugPrint("Ana sayfa verisi alınamadı: $e");
+
+      if (!mounted) return;
       setState(() {
         _loading = false;
       });
     }
+  }
+
+  Future<void> _handleRefresh() async {
+    await Future.wait([
+      _loadHomeData(),
+      widget.onRefreshCategories(),
+    ]);
   }
 
   IconData _getCategoryIcon(String category) {
@@ -269,10 +318,68 @@ class _HomeContentState extends State<_HomeContent> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: _loadHomeData,
+              onRefresh: _handleRefresh,
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 children: [
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 18),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFEDD5),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(
+                            Icons.table_restaurant_outlined,
+                            color: Color(0xFFF97316),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Aktif Masa',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF6B6670),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Masa ${widget.tableNumber}',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  color: Color(0xFF2F2A33),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   Row(
                     children: [
                       Container(
@@ -830,12 +937,14 @@ class _InfoCard extends StatelessWidget {
 class _CategoryDrawer extends StatelessWidget {
   final String title;
   final List<String> categories;
+  final bool isLoading;
   final VoidCallback onClose;
   final void Function(String) onSelect;
 
   const _CategoryDrawer({
     required this.title,
     required this.categories,
+    required this.isLoading,
     required this.onClose,
     required this.onSelect,
   });
@@ -869,41 +978,55 @@ class _CategoryDrawer extends StatelessWidget {
             ),
             const Divider(height: 1),
             Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.all(12),
-                itemCount: categories.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (context, i) {
-                  final c = categories[i];
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(14),
-                    onTap: () => onSelect(c),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: const Color(0xFFF97316).withOpacity(0.25),
-                        ),
-                        color: const Color(0xFFFFF7ED),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : categories.isEmpty
+                      ? const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(16),
                             child: Text(
-                              c,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                              ),
+                              "Kategori bulunamadı.",
+                              textAlign: TextAlign.center,
                             ),
                           ),
-                          const Icon(Icons.chevron_right),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.all(12),
+                          itemCount: categories.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 8),
+                          itemBuilder: (context, i) {
+                            final c = categories[i];
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(14),
+                              onTap: () => onSelect(c),
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: const Color(0xFFF97316)
+                                        .withOpacity(0.25),
+                                  ),
+                                  color: const Color(0xFFFFF7ED),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        c,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                    ),
+                                    const Icon(Icons.chevron_right),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
             ),
           ],
         ),
